@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Lili Szülinapi Játéka</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #120012;
+        font-family: Arial;
+        color: white;
+        text-align: center;
+    }
+
+    canvas {
+        display: block;
+    }
+
+    #ui {
+        position: absolute;
+        width: 100%;
+        top: 10px;
+        font-size: 20px;
+    }
+
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    #startBtn { background: #ff66cc; }
+    #muteBtn { background: #cccccc; }
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+    🎂 Boldog születésnapot Lili 🎂<br>
+    <span id="score">Pont: 0</span> |
+    <span id="time">Idő: 15</span><br>
+
+    <button id="startBtn">Játék indítása</button>
+    <button id="muteBtn">🔊 Hang</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<audio id="music" loop>
+    <source src="kis_grofo_szulinap.mp3" type="audio/mp3">
+</audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let score = 0;
+let time = 15;
+let running = false;
+let muted = false;
+
+let cake = null;
+let particles = [];
+
+const music = document.getElementById("music");
+
+function spawnCake() {
+    cake = {
+        x: Math.random() * (canvas.width - 100) + 50,
+        y: Math.random() * (canvas.height - 200) + 100,
+        size: 50
+    };
+}
+
+function drawCake() {
+    if (!cake) return;
+    ctx.font = "40px Arial";
+    ctx.fillText("🎂", cake.x, cake.y);
+}
+
+function spawnParticles() {
+    particles.push({
+        x: Math.random() * canvas.width,
+        y: 0,
+        speed: 1 + Math.random() * 2
+    });
+}
+
+function updateParticles() {
+    ctx.fillStyle = "white";
+    particles.forEach(p => {
+        p.y += p.speed;
+        ctx.fillRect(p.x, p.y, 3, 3);
+    });
+
+    particles = particles.filter(p => p.y < canvas.height);
+}
+
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (running) {
+        drawCake();
+        updateParticles();
+    }
+
+    requestAnimationFrame(loop);
+}
+
+canvas.addEventListener("click", (e) => {
+    if (!running || !cake) return;
+
+    let dx = e.clientX - cake.x;
+    let dy = e.clientY - cake.y;
+
+    if (Math.sqrt(dx*dx + dy*dy) < 50) {
+        score++;
+        document.getElementById("score").innerText = "Pont: " + score;
+        spawnCake();
+    }
+});
+
+document.getElementById("startBtn").onclick = () => {
+    running = true;
+    score = 0;
+    time = 15;
+
+    document.getElementById("score").innerText = "Pont: 0";
+    document.getElementById("time").innerText = "Idő: 15";
+
+    spawnCake();
+
+    // 🎵 MUST start from user click (iPad rule)
+    music.play();
+
+    let timer = setInterval(() => {
+        if (!running) return;
+
+        time--;
+        document.getElementById("time").innerText = "Idő: " + time;
+
+        spawnParticles();
+
+        if (time <= 0) {
+            running = false;
+            clearInterval(timer);
+
+            music.pause();
+
+            setTimeout(() => {
+                alert("NAGYON NAGYON BOLDOG SZÜLINAPOT LILI!! 🎉🎂\nPont: " + score);
+            }, 200);
+        }
+    }, 1000);
+};
+
+document.getElementById("muteBtn").onclick = () => {
+    muted = !muted;
+
+    if (muted) {
+        music.volume = 0;
+        document.getElementById("muteBtn").innerText = "🔇 Némítva";
+    } else {
+        music.volume = 1;
+        document.getElementById("muteBtn").innerText = "🔊 Hang";
+    }
+};
+
+setInterval(() => {
+    if (running) spawnParticles();
+}, 300);
+
+loop();
+</script>
+
+</body>
+</html>
